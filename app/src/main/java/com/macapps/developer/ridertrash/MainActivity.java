@@ -46,15 +46,15 @@ import java.util.List;
 
 import static android.os.Build.VERSION_CODES.M;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener,OnMarkerClickListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, OnMarkerClickListener {
     private FirebaseDatabase firebaseDatabase;
-    private DatabaseReference reference, paradasRef,rutasRef;
+    private DatabaseReference reference, paradasRef, rutasRef;
     private Location mLastLocation;
     private LocationRequest mLocationRequest;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mMap;
     private Marker mCurrLocationMarker;
-    private String paradaStr,rutasStr;
+    private String paradaStr, rutasStr;
     private ArrayList<LatLng> paradasLatLngs;
     private boolean ready;//Verifica que ya este listo la cadena de parada;
 
@@ -64,15 +64,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         firebaseDatabase = FirebaseDatabase.getInstance();
         reference = firebaseDatabase.getReference("driver");
-        paradasRef =firebaseDatabase.getReference("paradas");
-        rutasRef =firebaseDatabase.getReference("rutas");
+        paradasRef = firebaseDatabase.getReference("paradas");
+        rutasRef = firebaseDatabase.getReference("rutas");
 
 
         if (android.os.Build.VERSION.SDK_INT >= M) {
             checkLocationPermission();
         }
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-        paradasLatLngs=new ArrayList<>();
+        paradasLatLngs = new ArrayList<>();
         mapFragment.getMapAsync(this);
         ChildEventListener childEventListener = new ChildEventListener() {
             @Override
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     String lat = jsonObject.getString("latitude");
                     String lng = jsonObject.getString("longitude");
 
-                    LatLng latLng=new LatLng(Double.parseDouble(lat),Double.parseDouble(lng));
+                    LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
                     MarkerOptions markerOptions = new MarkerOptions();
                     markerOptions.position(latLng);
                     markerOptions.title("Current Position");
@@ -125,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         paradasRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                paradaStr=dataSnapshot.getValue(Object.class).toString();
-                ready=true;
+                paradaStr = dataSnapshot.getValue(Object.class).toString();
+                ready = true;
 
 
             }
@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         rutasRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                rutasStr=dataSnapshot.getValue(Object.class).toString();
+                rutasStr = dataSnapshot.getValue(Object.class).toString();
 
             }
 
@@ -154,51 +154,52 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Metodos para decodificar la info de una parada
 
      */
-    public void decodeParada(View view){
-        if(ready){
+    public void decodeParada(View view) {
+        if (ready) {
             //Toast.makeText(this, "Bajando Paradas  ", Toast.LENGTH_SHORT).show();
 
-            JSONObject jsonObject,jsonObject1;
+            JSONObject jsonObject, jsonObject1;
             JSONArray jsonArray1;
-            String paradasStr="parada";
-            List<HashMap> hashMaps= new ArrayList<>();
-            try{
-                jsonObject1=new JSONObject(paradaStr);
-                Toast.makeText(this, "lngth: "+jsonObject1.length(), Toast.LENGTH_SHORT).show();
+            String paradasStr = "parada";
+            List<HashMap> hashMaps = new ArrayList<>();
+            try {
+                jsonObject1 = new JSONObject(paradaStr);
+                Toast.makeText(this, "lngth: " + jsonObject1.length(), Toast.LENGTH_SHORT).show();
 
-              //
-                for (Integer j=0;j<=jsonObject1.length()-1;j++) {
+                //
+                for (Integer j = 0; j <= jsonObject1.length() - 1; j++) {
 
-                    paradasStr=paradasStr+j.toString();
-                 //   Toast.makeText(this, paradasStr, Toast.LENGTH_SHORT).show();
-                    jsonObject=jsonObject1.getJSONObject(paradasStr);
+                    paradasStr = paradasStr + j.toString();
+                    //   Toast.makeText(this, paradasStr, Toast.LENGTH_SHORT).show();
+                    jsonObject = jsonObject1.getJSONObject(paradasStr);
                     String Lat = jsonObject.getString("lat");
                     String Lng = jsonObject.getString("lng");
                     LatLng latLng = new LatLng(Double.parseDouble(Lat), Double.parseDouble(Lng));
                     paradasLatLngs.add(latLng);
-                    Marker marker=mMap.addMarker(new MarkerOptions().position(latLng).title(paradasStr).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-                    paradasStr="parada";
+                    Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(paradasStr).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    paradasStr = "parada";
                 }
 
 
-            }catch (JSONException e) {
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
     }
-    public  void mostrarRutasEnParada(String Parada){//
+
+    public void mostrarRutasEnParada(String ruta) {//
         ArrayList<LatLng> latLngs;
         JSONObject jsonObject1;
         JSONArray jsonArray;
         JSONArray jsonArray1;
         JSONObject jsonObject3;
 
-        List<HashMap> hashMaps=new ArrayList<>();
+        List<HashMap> hashMaps = new ArrayList<>();
         try {
-            jsonObject1=new JSONObject(rutasStr);
-            jsonArray=jsonObject1.getJSONArray("ruta1");
-            jsonArray1=jsonArray.getJSONArray(0);
-           // Toast.makeText(this,jsonArray1.toString() , Toast.LENGTH_LONG).show();
+            jsonObject1 = new JSONObject(rutasStr);
+            jsonArray = jsonObject1.getJSONArray(ruta);
+            jsonArray1 = jsonArray.getJSONArray(0);
+            // Toast.makeText(this,jsonArray1.toString() , Toast.LENGTH_LONG).show();
 
             for (int i = 0; i < jsonArray1.length(); i++) {
                 JSONObject jsonObject = jsonArray1.getJSONObject(i);
@@ -213,7 +214,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     hashMaps.add(hashMap1);
                 }
 
-            }try {
+            }
+            try {
                 Log.i("HshMAp", "Entrando...");
                 latLngs = new ArrayList<>();
                 PolylineOptions polylineOptions;
@@ -221,9 +223,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 for (HashMap<String, Double> hashMap1 : hashMaps) {
                     //       Toast.makeText(this, "lat: "+hashMap1.get("lat")+ "lng: "+hashMap1.get("lng"), Toast.LENGTH_SHORT).show();
-                    LatLng latLng=new LatLng(hashMap1.get("lat"),hashMap1.get("lng"));
+                    LatLng latLng = new LatLng(hashMap1.get("lat"), hashMap1.get("lng"));
                     latLngs.add(latLng);
-
 
 
                     ///TODO aqui Ya tenemos todos los puntos;
@@ -231,7 +232,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 polylineOptions.addAll(latLngs);
                 polylineOptions.width(15);
-                polylineOptions.color(Color.BLUE);
+                if (ruta.equals("ruta1"))
+                    polylineOptions.color(Color.BLUE);
+                else
+                    polylineOptions.color(Color.RED);
+
+
                 if (polylineOptions != null) {
 
                     mMap.addPolyline(polylineOptions);
@@ -250,25 +256,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
 
-
         } catch (JSONException e) {
             e.printStackTrace();
-            Toast.makeText(this,e.toString(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
         }
 
 
     }
 
-    public ArrayList<String> rutasEnParada(String parada){
-        ArrayList<String> rutas=new ArrayList<>();
+    public ArrayList<String> rutasEnParada(String parada) {
+        ArrayList<String> rutas = new ArrayList<>();
         try {
 
-            JSONObject jsonObject,jsonObject1;
+            JSONObject jsonObject, jsonObject1;
             JSONArray jsonArray;
-            jsonObject=new JSONObject(paradaStr);
-            jsonObject1=jsonObject.getJSONObject(parada);
-            jsonArray=jsonObject1.getJSONArray("rutas");
-            for(int i=0;i<=jsonArray.length()-1;i++){
+            jsonObject = new JSONObject(paradaStr);
+            jsonObject1 = jsonObject.getJSONObject(parada);
+            jsonArray = jsonObject1.getJSONArray("rutas");
+            for (int i = 0; i <= jsonArray.length() - 1; i++) {
                 rutas.add(jsonArray.get(i).toString());
                 Toast.makeText(this, jsonArray.get(i).toString(), Toast.LENGTH_SHORT).show();
 
@@ -282,6 +287,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
+
     /*
     OnMapReadyCallback metodos de GoogleMaps
      */
@@ -383,16 +389,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return true;
         }
     }
-    public  void clearMap(View view){
+
+    public void clearMap(View view) {
         mMap.clear();
     }
 
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        Toast.makeText(this, "Name: "+marker.getTitle(), Toast.LENGTH_SHORT).show();
-        mostrarRutasEnParada("hola");
-        rutasEnParada(marker.getTitle());
+        Toast.makeText(this, "Name: " + marker.getTitle(), Toast.LENGTH_SHORT).show();
+        ArrayList<String> paradas = rutasEnParada(marker.getTitle());
+        for (int i = 0; i <= paradas.size() - 1; i++) {
+            mostrarRutasEnParada(paradas.get(i));
+        }
+
         return true;
     }
 }
