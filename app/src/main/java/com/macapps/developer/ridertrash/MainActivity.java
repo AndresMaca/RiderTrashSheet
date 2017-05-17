@@ -3,6 +3,7 @@ package com.macapps.developer.ridertrash;
 
 import android.Manifest.permission;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,6 +11,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -26,6 +28,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -45,13 +48,13 @@ import static android.os.Build.VERSION_CODES.M;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener,OnMarkerClickListener {
     private FirebaseDatabase firebaseDatabase;
-    private DatabaseReference reference, paradasRef;
+    private DatabaseReference reference, paradasRef,rutasRef;
     private Location mLastLocation;
     private LocationRequest mLocationRequest;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mMap;
     private Marker mCurrLocationMarker;
-    private String paradaStr;
+    private String paradaStr,rutasStr;
     private ArrayList<LatLng> paradasLatLngs;
     private boolean ready;//Verifica que ya este listo la cadena de parada;
 
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         firebaseDatabase = FirebaseDatabase.getInstance();
         reference = firebaseDatabase.getReference("driver");
         paradasRef =firebaseDatabase.getReference("paradas");
+        rutasRef =firebaseDatabase.getReference("rutas");
 
 
         if (android.os.Build.VERSION.SDK_INT >= M) {
@@ -132,6 +136,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });//Descarga la info de una parada
+        rutasRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                rutasStr=dataSnapshot.getValue(Object.class).toString();
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
     /*
@@ -154,18 +170,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 for (Integer j=0;j<=jsonObject1.length()-1;j++) {
 
                     paradasStr=paradasStr+j.toString();
-                    Toast.makeText(this, paradasStr, Toast.LENGTH_SHORT).show();
+                 //   Toast.makeText(this, paradasStr, Toast.LENGTH_SHORT).show();
                     jsonObject=jsonObject1.getJSONObject(paradasStr);
                     String Lat = jsonObject.getString("lat");
                     String Lng = jsonObject.getString("lng");
                     LatLng latLng = new LatLng(Double.parseDouble(Lat), Double.parseDouble(Lng));
                     paradasLatLngs.add(latLng);
                     Marker marker=mMap.addMarker(new MarkerOptions().position(latLng).title(paradasStr).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-
-                    jsonArray1 = jsonObject.getJSONArray("rutas");
-                    for (int i = 0; i <= jsonArray1.length() - 1; i++) {
-                    //    Toast.makeText(this, jsonArray1.get(i).toString(), Toast.LENGTH_SHORT).show();
-                    }
                     paradasStr="parada";
                 }
 
@@ -175,8 +186,102 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+    public  void mostrarRutasEnParada(String Parada){//
+        ArrayList<LatLng> latLngs;
+        JSONObject jsonObject1;
+        JSONArray jsonArray;
+        JSONArray jsonArray1;
+        JSONObject jsonObject3;
+
+        List<HashMap> hashMaps=new ArrayList<>();
+        try {
+            jsonObject1=new JSONObject(rutasStr);
+            jsonArray=jsonObject1.getJSONArray("ruta1");
+            jsonArray1=jsonArray.getJSONArray(0);
+           // Toast.makeText(this,jsonArray1.toString() , Toast.LENGTH_LONG).show();
+
+            for (int i = 0; i < jsonArray1.length(); i++) {
+                JSONObject jsonObject = jsonArray1.getJSONObject(i);
+                for (int j = 0; j < jsonObject.length(); j++) {
+                    HashMap<String, Double> hashMap1 = new HashMap<>();
+                    String lat = jsonObject.getString("lat");
+                    String lng = jsonObject.getString("lng");
+
+                    //Todo Hacer dos Puntos de prueba
+                    hashMap1.put("lat", Double.parseDouble(jsonObject.getString("lat")));
+                    hashMap1.put("lng", Double.parseDouble(jsonObject.getString("lng")));
+                    hashMaps.add(hashMap1);
+                }
+
+            }try {
+                Log.i("HshMAp", "Entrando...");
+                latLngs = new ArrayList<>();
+                PolylineOptions polylineOptions;
+                polylineOptions = new PolylineOptions();
+
+                for (HashMap<String, Double> hashMap1 : hashMaps) {
+                    //       Toast.makeText(this, "lat: "+hashMap1.get("lat")+ "lng: "+hashMap1.get("lng"), Toast.LENGTH_SHORT).show();
+                    LatLng latLng=new LatLng(hashMap1.get("lat"),hashMap1.get("lng"));
+                    latLngs.add(latLng);
 
 
+
+                    ///TODO aqui Ya tenemos todos los puntos;
+
+                }
+                polylineOptions.addAll(latLngs);
+                polylineOptions.width(15);
+                polylineOptions.color(Color.BLUE);
+                if (polylineOptions != null) {
+
+                    mMap.addPolyline(polylineOptions);
+                    Toast.makeText(this, "Add Polyline", Toast.LENGTH_SHORT).show();
+
+                } else {
+                    Toast.makeText(this, "Poly is null", Toast.LENGTH_SHORT).show();
+                }
+
+
+                //  textView.setText(data);
+
+            } catch (Exception e) {
+                Log.e("String Parse Error", e.toString());
+                Toast.makeText(this, "Error" + e.toString(), Toast.LENGTH_SHORT).show();
+            }
+
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Toast.makeText(this,e.toString(), Toast.LENGTH_LONG).show();
+        }
+
+
+    }
+
+    public ArrayList<String> rutasEnParada(String parada){
+        ArrayList<String> rutas=new ArrayList<>();
+        try {
+
+            JSONObject jsonObject,jsonObject1;
+            JSONArray jsonArray;
+            jsonObject=new JSONObject(paradaStr);
+            jsonObject1=jsonObject.getJSONObject(parada);
+            jsonArray=jsonObject1.getJSONArray("rutas");
+            for(int i=0;i<=jsonArray.length()-1;i++){
+                rutas.add(jsonArray.get(i).toString());
+                Toast.makeText(this, jsonArray.get(i).toString(), Toast.LENGTH_SHORT).show();
+
+            }
+            return rutas;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            rutas.add("error");
+            return rutas;
+        }
+
+    }
     /*
     OnMapReadyCallback metodos de GoogleMaps
      */
@@ -278,11 +383,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return true;
         }
     }
+    public  void clearMap(View view){
+        mMap.clear();
+    }
 
 
     @Override
     public boolean onMarkerClick(Marker marker) {
         Toast.makeText(this, "Name: "+marker.getTitle(), Toast.LENGTH_SHORT).show();
+        mostrarRutasEnParada("hola");
+        rutasEnParada(marker.getTitle());
         return true;
     }
 }
