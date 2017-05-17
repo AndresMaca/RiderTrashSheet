@@ -76,6 +76,7 @@
             fab:fab_colorNormal="@color/colorAccent"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_my_location_black_24dp"
+            android:onClick="decodeParada"
 
             fab:fab_size="mini" />
     </com.github.clans.fab.FloatingActionMenu>
