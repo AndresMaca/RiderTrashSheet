@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.github.clans.fab.FloatingActionMenu;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     BottomSheetBehavior bottomSheetBehavior;
     private ListView bottomSheetListView;
     private ItemAdapter itemAdapter;
+    FloatingActionMenu fab;
 
 
     @Override
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetBehavior.setHideable(true);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
           bottomSheetListView=(ListView)findViewById(R.id.listView);
+        fab=(FloatingActionMenu)findViewById(R.id.material_design_android_floating_action_menu);
 
 
         firebaseDatabase = FirebaseDatabase.getInstance();
@@ -172,8 +175,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
 
+                fab.animate().scaleX(1 - Math.abs(slideOffset)).scaleY(1 - Math.abs(slideOffset)).setDuration(0).start();
+
             }
         });
+
     }
 
     /*
