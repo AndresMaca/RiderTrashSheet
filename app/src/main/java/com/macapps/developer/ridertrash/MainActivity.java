@@ -8,11 +8,15 @@ import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.BottomSheetBehavior;
+import android.support.design.widget.BottomSheetBehavior.BottomSheetCallback;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -57,11 +61,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String paradaStr, rutasStr;
     private ArrayList<LatLng> paradasLatLngs;
     private boolean ready;//Verifica que ya este listo la cadena de parada;
+    BottomSheetBehavior bottomSheetBehavior;
+    private ListView bottomSheetListView;
+    private ItemAdapter itemAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        LinearLayout llBottomSheet = (LinearLayout) findViewById(R.id.bottom_sheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(llBottomSheet);
+        bottomSheetBehavior.setHideable(true);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+          bottomSheetListView=(ListView)findViewById(R.id.listView);
+
+
         firebaseDatabase = FirebaseDatabase.getInstance();
         reference = firebaseDatabase.getReference("driver");
         paradasRef = firebaseDatabase.getReference("paradas");
@@ -148,6 +163,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
+        bottomSheetBehavior.setBottomSheetCallback(new BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
     }
 
     /*
@@ -199,6 +225,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             jsonObject1 = new JSONObject(rutasStr);
             jsonArray = jsonObject1.getJSONArray(ruta);
             jsonArray1 = jsonArray.getJSONArray(0);
+
             // Toast.makeText(this,jsonArray1.toString() , Toast.LENGTH_LONG).show();
 
             for (int i = 0; i < jsonArray1.length(); i++) {
@@ -397,8 +424,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(Marker marker) {
+        bottomSheetBehavior.setHideable(true);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         Toast.makeText(this, "Name: " + marker.getTitle(), Toast.LENGTH_SHORT).show();
-        ArrayList<String> paradas = rutasEnParada(marker.getTitle());
+        ArrayList<String> paradas = new ArrayList<>();
+        paradas=rutasEnParada(marker.getTitle());
+        if (paradas != null) {
+            itemAdapter = new ItemAdapter(this ,paradas);
+            bottomSheetListView.setAdapter(itemAdapter);
+        }
         for (int i = 0; i <= paradas.size() - 1; i++) {
             mostrarRutasEnParada(paradas.get(i));
         }

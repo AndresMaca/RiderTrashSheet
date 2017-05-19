@@ -1,32 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:fab="http://schemas.android.com/apk/res-auto"
-                xmlns:app="http://schemas.android.com/apk/res-auto"
-                xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                tools:context=".MainActivity">
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-              android:id="@+id/map"
-              android:name="com.google.android.gms.maps.MapFragment"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-    />
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
 
+
+    <include layout="@layout/content_main"/>
+
+
+    <View
+        android:id="@+id/shadow"
+        android:layout_width="match_parent"
+        android:layout_height="16dp"
+        android:background="@drawable/shape_gradient_top_shadow"
+        app:layout_anchorGravity="top"
+        app:layout_anchor="@+id/bottom_sheet"/>
     <com.github.clans.fab.FloatingActionMenu
         android:id="@+id/material_design_android_floating_action_menu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
         android:layout_marginBottom="11dp"
         android:layout_marginLeft="11dp"
         android:layout_marginRight="11dp"
+        app:layout_anchor="@+id/bottom_sheet"
+        app:layout_anchorGravity="top|end"
+        android:elevation="24dp"
         fab:menu_animationDelayPerItem="55"
         fab:menu_backgroundColor="@android:color/transparent"
         fab:menu_buttonSpacing="0dp"
-        fab:menu_colorNormal="@color/colorPrimary"
-        fab:menu_colorPressed="@color/colorPrimaryDark"
+        fab:menu_colorNormal="@color/colorAccent"
+        fab:menu_colorPressed="#e76720"
         fab:menu_colorRipple="#99d4d4d4"
         fab:menu_fab_size="normal"
         fab:menu_icon="@drawable/ic_pin_drop_black_24dp"
@@ -46,7 +54,7 @@
         fab:menu_labels_textColor="#f2f1f1"
         fab:menu_labels_textSize="15sp"
         fab:menu_openDirection="up"
-        fab:menu_shadowColor="#66aff198"
+
         fab:menu_shadowRadius="4dp"
         fab:menu_shadowXOffset="1dp"
         fab:menu_shadowYOffset="4dp"
@@ -83,5 +91,7 @@
     </com.github.clans.fab.FloatingActionMenu>
 
 
+    <include layout="@layout/bottom_sheet"/>
 
-</RelativeLayout>
+
+</android.support.design.widget.CoordinatorLayout>
