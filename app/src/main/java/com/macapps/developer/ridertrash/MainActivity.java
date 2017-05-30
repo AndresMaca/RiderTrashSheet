@@ -34,7 +34,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -47,6 +46,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import static android.os.Build.VERSION_CODES.M;
@@ -65,7 +65,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     BottomSheetBehavior bottomSheetBehavior;
     private ListView bottomSheetListView;
     private ItemAdapter itemAdapter;
+    private HashMap<String,Marker> marcadores;
     FloatingActionMenu fab;
+
 
 
     @Override
@@ -78,10 +80,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
           bottomSheetListView=(ListView)findViewById(R.id.listView);
         fab=(FloatingActionMenu)findViewById(R.id.material_design_android_floating_action_menu);
-
+        marcadores=new HashMap<>();
 
         firebaseDatabase = FirebaseDatabase.getInstance();
-        reference = firebaseDatabase.getReference("driver");
+        reference = firebaseDatabase.getReference("Driver");///Child
         paradasRef = firebaseDatabase.getReference("paradas");
         rutasRef = firebaseDatabase.getReference("rutas");
 
@@ -92,53 +94,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         paradasLatLngs = new ArrayList<>();
         mapFragment.getMapAsync(this);
-        ChildEventListener childEventListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                Object o = dataSnapshot.getValue();
 
-                try {
-                    if (mCurrLocationMarker != null) {
-                        mCurrLocationMarker.remove();
-                    }
-                    JSONObject jsonObject = new JSONObject(o.toString());
-                    String lat = jsonObject.getString("latitude");
-                    String lng = jsonObject.getString("longitude");
 
-                    LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-                    MarkerOptions markerOptions = new MarkerOptions();
-                    markerOptions.position(latLng);
-                    markerOptions.title("Current Position");
-
-                    mCurrLocationMarker = mMap.addMarker(markerOptions);
-
-                } catch (JSONException e) {
-                    //Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-                }
-
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        };
-        reference.addChildEventListener(childEventListener);
 
         paradasRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -319,6 +276,77 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return rutas;
         }
 
+    }
+    public void realTimePos(View view){
+        ValueEventListener valueEventListener =new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Object o = dataSnapshot.getValue();
+                ArrayList<String> keys;
+
+                try {
+                    JSONObject driverPosition= new JSONObject(o.toString());
+                    keys=new ArrayList<>();
+
+                    Iterator x= driverPosition.keys();
+                    JSONArray jsonArray = new JSONArray();
+                    while (x.hasNext()){
+                        String key=(String) x.next();
+                        keys.add(key);
+                        jsonArray.put(driverPosition.get(key));
+
+                    }//Primero hay que eliminar los anteriores
+
+                    for (int j=0;j<=keys.size()-1;j++){//Iterar sobre el hashmap
+                        if(marcadores.containsKey(keys.get(j))){
+                            Marker marker;
+                            marker=marcadores.get(keys.get(j));
+                            marker.remove();
+                        }else{
+
+                        }
+
+                    }
+
+
+
+                    for(int i=0;i<jsonArray.length();i++){
+
+                        JSONObject jsonObject=new JSONObject(jsonArray.get(i).toString());
+                        jsonObject=new JSONObject( jsonObject.getString("position"));
+
+
+                        Double lat = jsonObject.getDouble("latitude");
+                        Double lng = jsonObject.getDouble("longitude");
+                        LatLng latLng = new LatLng(lat,lng);
+
+                        MarkerOptions markerOptions = new MarkerOptions();
+                        markerOptions.position(latLng);
+                        markerOptions.title("Current Position");
+
+                       // mCurrLocationMarker = mMap.addMarker(markerOptions);
+                        Marker  marker=mMap.addMarker(markerOptions);
+
+                        Toast.makeText(MainActivity.this, keys.toString(), Toast.LENGTH_SHORT).show();
+
+                        marcadores.put(keys.get(i),marker);
+
+
+                        Toast.makeText(MainActivity.this, jsonObject.toString(), Toast.LENGTH_LONG).show();
+                    }
+
+
+                } catch (JSONException e) {
+                    Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        };
+        reference.addValueEventListener(valueEventListener);
     }
 
     /*
