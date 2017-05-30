@@ -26,11 +26,13 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -58,16 +60,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationRequest mLocationRequest;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mMap;
-    private Marker mCurrLocationMarker;
+
+    private Marker mCurrLocationMarker, destino;
     private String paradaStr, rutasStr;
     private ArrayList<LatLng> paradasLatLngs;
     private boolean ready;//Verifica que ya este listo la cadena de parada;
     BottomSheetBehavior bottomSheetBehavior;
     private ListView bottomSheetListView;
     private ItemAdapter itemAdapter;
-    private HashMap<String,Marker> marcadores;
+    private HashMap<String, Marker> marcadores;
+    HashMap<String, Double> shortestStart, shortestEnd;
+    HashMap<String, LatLng> paradores;
     FloatingActionMenu fab;
-
 
 
     @Override
@@ -78,9 +82,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetBehavior = BottomSheetBehavior.from(llBottomSheet);
         bottomSheetBehavior.setHideable(true);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-          bottomSheetListView=(ListView)findViewById(R.id.listView);
-        fab=(FloatingActionMenu)findViewById(R.id.material_design_android_floating_action_menu);
-        marcadores=new HashMap<>();
+        bottomSheetListView = (ListView) findViewById(R.id.listView);
+        fab = (FloatingActionMenu) findViewById(R.id.material_design_android_floating_action_menu);
+        marcadores = new HashMap<>();
+        shortestStart = new HashMap<>();
+        shortestEnd = new HashMap<>();
+        paradores = new HashMap<>();
 
         firebaseDatabase = FirebaseDatabase.getInstance();
         reference = firebaseDatabase.getReference("Driver");///Child
@@ -94,7 +101,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         paradasLatLngs = new ArrayList<>();
         mapFragment.getMapAsync(this);
-
 
 
         paradasRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -143,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Metodos para decodificar la info de una parada
 
      */
-    public void decodeParada(View view) {
+    public void decodeParada(Marker finalPositiona) {
         if (ready) {
             //Toast.makeText(this, "Bajando Paradas  ", Toast.LENGTH_SHORT).show();
 
@@ -165,7 +171,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     String Lng = jsonObject.getString("lng");
                     LatLng latLng = new LatLng(Double.parseDouble(Lat), Double.parseDouble(Lng));
                     paradasLatLngs.add(latLng);
-                    Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(paradasStr).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    //mMap.addMarker(new MarkerOptions().position(latLng).title(paradasStr).icon(BitmapDescriptorFactory.fromResource(R.drawable.parada_naranja)));
+                    //TODO capturar ultima ubicacion conocida
+                    paradores.put(paradasStr, latLng);
+
+                    Double latr = mCurrLocationMarker.getPosition().latitude - Double.parseDouble(Lat);
+                    Double lngr = mCurrLocationMarker.getPosition().longitude - Double.parseDouble(Lng);
+                    Double distancia = Math.sqrt(Math.abs(latr * latr) + Math.abs(lngr * lngr));
+                    shortestStart.put(paradasStr, distancia);
+
+                    Double late = finalPositiona.getPosition().latitude - Double.parseDouble(Lat);
+                    Double lnge = finalPositiona.getPosition().longitude - Double.parseDouble(Lng);
+                    Double distanciaFinal = Math.sqrt(Math.abs(late * late) + Math.abs(lnge * lnge));
+                    shortestEnd.put(paradasStr, distanciaFinal);
+
+
                     paradasStr = "parada";
                 }
 
@@ -224,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 polylineOptions.width(15);
                 if (ruta.equals("ruta1"))
                     polylineOptions.color(Color.BLUE);
+
                 else
                     polylineOptions.color(Color.RED);
 
@@ -231,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (polylineOptions != null) {
 
                     mMap.addPolyline(polylineOptions);
-                    Toast.makeText(this, "Add Polyline", Toast.LENGTH_SHORT).show();
+                    //    Toast.makeText(this, "Add Polyline", Toast.LENGTH_SHORT).show();
 
                 } else {
                     Toast.makeText(this, "Poly is null", Toast.LENGTH_SHORT).show();
@@ -265,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             jsonArray = jsonObject1.getJSONArray("rutas");
             for (int i = 0; i <= jsonArray.length() - 1; i++) {
                 rutas.add(jsonArray.get(i).toString());
-                Toast.makeText(this, jsonArray.get(i).toString(), Toast.LENGTH_SHORT).show();
+                //   Toast.makeText(this, jsonArray.get(i).toString(), Toast.LENGTH_SHORT).show();
 
             }
             return rutas;
@@ -277,62 +298,73 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
-    public void realTimePos(View view){
-        ValueEventListener valueEventListener =new ValueEventListener() {
+
+    public void realTimePos(View view) {
+        ValueEventListener valueEventListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Object o = dataSnapshot.getValue();
                 ArrayList<String> keys;
 
                 try {
-                    JSONObject driverPosition= new JSONObject(o.toString());
-                    keys=new ArrayList<>();
+                    JSONObject driverPosition = new JSONObject(o.toString());
+                    keys = new ArrayList<>();
 
-                    Iterator x= driverPosition.keys();
+                    Iterator x = driverPosition.keys();
                     JSONArray jsonArray = new JSONArray();
-                    while (x.hasNext()){
-                        String key=(String) x.next();
+                    while (x.hasNext()) {
+                        String key = (String) x.next();
                         keys.add(key);
                         jsonArray.put(driverPosition.get(key));
 
                     }//Primero hay que eliminar los anteriores
 
-                    for (int j=0;j<=keys.size()-1;j++){//Iterar sobre el hashmap
-                        if(marcadores.containsKey(keys.get(j))){
+                    for (int j = 0; j <= keys.size() - 1; j++) {//Iterar sobre el hashmap
+                        if (marcadores.containsKey(keys.get(j))) {
                             Marker marker;
-                            marker=marcadores.get(keys.get(j));
+                            marker = marcadores.get(keys.get(j));
                             marker.remove();
-                        }else{
+                        } else {
 
                         }
 
                     }
+                    for (int i = 0; i < jsonArray.length(); i++) {
 
-
-
-                    for(int i=0;i<jsonArray.length();i++){
-
-                        JSONObject jsonObject=new JSONObject(jsonArray.get(i).toString());
-                        jsonObject=new JSONObject( jsonObject.getString("position"));
+                        JSONObject jsonObject = new JSONObject(jsonArray.get(i).toString());
+                        int routeNumber = jsonObject.getInt("ruta");
+                        jsonObject = new JSONObject(jsonObject.getString("position"));
 
 
                         Double lat = jsonObject.getDouble("latitude");
                         Double lng = jsonObject.getDouble("longitude");
-                        LatLng latLng = new LatLng(lat,lng);
+                        LatLng latLng = new LatLng(lat, lng);
 
                         MarkerOptions markerOptions = new MarkerOptions();
                         markerOptions.position(latLng);
                         markerOptions.title("Current Position");
+                        switch (routeNumber) {
+                            case 1:
+                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_rojo));
+                                break;
+                            case 2:
+                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_azul));
+                                break;
+                            default:
+                                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_verde));
+                                break;
 
-                       // mCurrLocationMarker = mMap.addMarker(markerOptions);
-                        Marker  marker=mMap.addMarker(markerOptions);
+                        }
 
-                        Toast.makeText(MainActivity.this, keys.toString(), Toast.LENGTH_SHORT).show();
+                        // mCurrLocationMarker = mMap.addMarker(markerOptions);
+                        Marker marker = mMap.addMarker(markerOptions);
 
-                        marcadores.put(keys.get(i),marker);
+                        //  Toast.makeText(MainActivity.this, keys.toString(), Toast.LENGTH_SHORT).show();
+
+                        marcadores.put(keys.get(i), marker);
 
 
-                        Toast.makeText(MainActivity.this, jsonObject.toString(), Toast.LENGTH_LONG).show();
+                        // Toast.makeText(MainActivity.this, jsonObject.toString(), Toast.LENGTH_LONG).show();
                     }
 
 
@@ -355,6 +387,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                        this, R.raw.style_map));
+
 
         //Initialize Google Play Services
         if (android.os.Build.VERSION.SDK_INT >= M) {
@@ -364,6 +400,57 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 buildGoogleApiClient();
                 mMap.setMyLocationEnabled(true);
                 mMap.setOnMarkerClickListener(this);
+                mMap.setOnMapClickListener(new OnMapClickListener() {
+                    @Override
+                    public void onMapClick(LatLng latLng) {
+
+                        if (destino != null) {
+                            destino.remove();
+                        }
+                        destino = mMap.addMarker(new MarkerOptions().position(latLng));
+                        if (mCurrLocationMarker != null) {
+                            decodeParada(destino);
+
+
+                            ArrayList<String> paradasMasCercanas, paradasCercanasPosFinal;
+                            SearchModule searchModuleFinal = new SearchModule();
+                            SearchModule searchModule = new SearchModule();
+
+                            paradasMasCercanas = searchModule.searchModule(shortestStart);
+                            //  Toast.makeText(MainActivity.this,"+"+ paradasMasCercanas.toString(), Toast.LENGTH_SHORT).show();
+
+                            paradasCercanasPosFinal = searchModuleFinal.searchModule(shortestEnd);
+                            // Toast.makeText(MainActivity.this, paradasCercanasPosFinal.toString(), Toast.LENGTH_LONG).show();
+                            ArrayList<ArrayList<String>> paradasQueSirven = new ArrayList<ArrayList<String>>();
+
+
+                            ArrayList<String> rutasIniciales = rutasEnParada(paradasMasCercanas.get(0));
+                            for (int k = 0; k <= 5; k++) {
+                                ArrayList<String> rutasFinales = rutasEnParada(paradasCercanasPosFinal.get(k));
+                                //  Toast.makeText(MainActivity.this, rutasIniciales.toString() + "finales" + rutasFinales.toString(), Toast.LENGTH_SHORT).show();
+                                for (int i = 0; i <= rutasFinales.size() - 1; i++)
+                                    for (int j = 0; j <= rutasIniciales.size() - 1; j++) {
+                                        if (rutasFinales.get(i).equals(rutasIniciales.get(j))) {
+                                            ArrayList<String> rutasTemp = new ArrayList<String>();
+                                            //     Toast.makeText(MainActivity.this, "Sirve la ruta" + rutasFinales.get(i), Toast.LENGTH_SHORT).show();
+                                            rutasTemp.add(rutasFinales.get(i));
+                                            rutasTemp.add(paradasCercanasPosFinal.get(k));
+                                            paradasQueSirven.add(rutasTemp);//Añadir posicion inicial
+
+                                            break;
+                                        }
+                                    }
+                            }
+                            Toast.makeText(MainActivity.this, paradasQueSirven.toString(), Toast.LENGTH_LONG).show();
+                            mMap.addMarker(new MarkerOptions().position(paradores.get(paradasMasCercanas.get(0))).icon(BitmapDescriptorFactory.fromResource(R.drawable.parada_naranja)));
+                            mMap.addMarker(new MarkerOptions().position(paradores.get(paradasQueSirven.get(0).get(1))).icon(BitmapDescriptorFactory.fromResource(R.drawable.parada_naranja)));
+
+
+                        }else{
+                            Toast.makeText(MainActivity.this, "No hemos podido determinar tu ubicacion", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
             }
         } else {
             buildGoogleApiClient();
@@ -376,7 +463,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onLocationChanged(Location location) {
-
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        mCurrLocationMarker = mMap.addMarker(new MarkerOptions().position(latLng));
 
     }
 
@@ -397,6 +485,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
         mLocationRequest.setFastestInterval(10000);
@@ -408,6 +497,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 == PackageManager.PERMISSION_GRANTED) {
             //LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (location != null) {
+            mCurrLocationMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())));
         }
     }
 
@@ -462,9 +555,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         Toast.makeText(this, "Name: " + marker.getTitle(), Toast.LENGTH_SHORT).show();
         ArrayList<String> paradas = new ArrayList<>();
-        paradas=rutasEnParada(marker.getTitle());
+        paradas = rutasEnParada(marker.getTitle());
         if (paradas != null) {
-            itemAdapter = new ItemAdapter(this ,paradas);
+            itemAdapter = new ItemAdapter(this, paradas);
             bottomSheetListView.setAdapter(itemAdapter);
         }
         for (int i = 0; i <= paradas.size() - 1; i++) {
@@ -473,4 +566,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         return true;
     }
+
+
 }
