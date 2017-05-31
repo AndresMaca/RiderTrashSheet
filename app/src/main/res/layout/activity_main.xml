@@ -9,9 +9,27 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/AppTheme.AppBarOverlay">
 
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:minHeight="50dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="35dp"
+                android:layout_gravity="center"
+                android:contentDescription="logo"
+                android:src="@drawable/logo" />
+        </android.support.v7.widget.Toolbar>
+    </android.support.design.widget.AppBarLayout>
     <include layout="@layout/content_main"/>
-
 
     <View
         android:id="@+id/shadow"
@@ -20,6 +38,7 @@
         android:background="@drawable/shape_gradient_top_shadow"
         app:layout_anchorGravity="top"
         app:layout_anchor="@+id/bottom_sheet"/>
+
     <com.github.clans.fab.FloatingActionMenu
         android:id="@+id/material_design_android_floating_action_menu"
         android:layout_width="wrap_content"
@@ -85,13 +104,11 @@
             fab:fab_colorNormal="@color/colorAccent"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_my_location_black_24dp"
-            android:onClick="decodeParada"
+            android:onClick="myLocation"
 
             fab:fab_size="mini" />
     </com.github.clans.fab.FloatingActionMenu>
 
-
     <include layout="@layout/bottom_sheet"/>
-
 
 </android.support.design.widget.CoordinatorLayout>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RiderTrash</string>
+    <string name="app_name">Passenger</string>
     <string name="action_settings">Settings</string>
     <string name="bottom_sheet_content">content</string>
     <string name="bottom_sheet_peek">RUTAS</string>
@@ -208,4 +208,5 @@
         ]
         }
         ]</string>
+    <string name="predeterminado">default</string>
 </resources>
